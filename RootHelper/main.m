@@ -697,19 +697,7 @@ int signApp(NSString* appPath)
 					if (r == 0) {
 						NSLog(@"[%@] Applied CoreTrust bypass!", filePath);
 					}
-					else if (r == 2) {
-						NSLog(@"[%@] Cannot apply CoreTrust bypass on an encrypted binary!", filePath);
-						if (isSameFile(filePath, mainExecutablePath)) {
-							// If this is the main binary, this error is fatal
-							NSLog(@"[%@] Main binary is encrypted, cannot continue!", filePath);
-							fat_free(fat);
-							return 180;
-						}
-						else {
-							// If not, we can continue but want to show a warning after the app is installed
-							hasAdditionalEncryptedBinaries = YES;
-						}
-					} else if (r == 3) { // Non-fatal - unsupported MachO type
+					 else if (r == 3) { // Non-fatal - unsupported MachO type
 						NSLog(@"[%@] Cannot apply CoreTrust bypass on an unsupported MachO type!", filePath);
 					}
 					else {
@@ -730,10 +718,6 @@ int signApp(NSString* appPath)
 	if (requiresDevMode) {
 		// Postpone trying to enable dev mode until after the app is (successfully) installed
 		return 182;
-	}
-
-	if (hasAdditionalEncryptedBinaries) {
-		return 184;
 	}
 
 	return 0;
@@ -833,8 +817,6 @@ int installApp(NSString* appPackagePath, BOOL sign, BOOL force, BOOL isTSUpdate,
 		if(signRet != 0) {
 			if (signRet == 182) {
 				requiresDevMode = YES;
-			} else if (signRet == 184) {
-				hasAdditionalEncryptedBinaries = YES;
 			} else {
 				return signRet;
 			}
@@ -1004,11 +986,6 @@ int installApp(NSString* appPackagePath, BOOL sign, BOOL force, BOOL isTSUpdate,
 		}
 	}
 
-	if (hasAdditionalEncryptedBinaries) {
-		NSLog(@"[installApp] app has additional encrypted binaries");
-		// non-fatal
-		return 184;
-	}
 
 	return 0;
 }
