@@ -542,7 +542,7 @@ int signApp(NSString* appPath)
 		NSLog(@"[signApp] taking fast path for app which declares use of a supported pre-applied exploit (%@)", mainExecutablePath);
 		return 0;
 	}
-	else
+	else if (declaredPreAppliedExploitType != 0)
 	{
 		NSLog(@"[signApp] app (%@) declares use of a pre-applied exploit that is not supported on this device. Proceeding to re-sign...", mainExecutablePath);
 	}
@@ -703,7 +703,7 @@ int signApp(NSString* appPath)
 					else {
 						NSLog(@"[%@] CoreTrust bypass failed!!! :(", filePath);
 						fat_free(fat);
-						return 175;
+						return 185;
 					}
 
 					// tempFile is now signed, overwrite original file at filePath with it
@@ -1287,12 +1287,16 @@ BOOL _installPersistenceHelper(LSApplicationProxy* appProxy, NSString* sourcePer
 	return YES;
 }
 
-void installPersistenceHelper(NSString* systemAppId)
+void installPersistenceHelper(NSString* systemAppId, NSString *persistenceHelperBinary, NSString *rootHelperBinary)
 {
 	if(findPersistenceHelperApp(PERSISTENCE_HELPER_TYPE_ALL)) return;
 
-	NSString* persistenceHelperBinary = [trollStoreAppPath() stringByAppendingPathComponent:@"PersistenceHelper"];
-	NSString* rootHelperBinary = [trollStoreAppPath() stringByAppendingPathComponent:@"trollstorehelper"];
+	if (persistenceHelperBinary == nil) {
+		persistenceHelperBinary = [trollStoreAppPath() stringByAppendingPathComponent:@"PersistenceHelper"];
+	}
+	if (rootHelperBinary == nil) {
+		rootHelperBinary = [trollStoreAppPath() stringByAppendingPathComponent:@"trollstorehelper"];
+	}
 	LSApplicationProxy* appProxy = [LSApplicationProxy applicationProxyForIdentifier:systemAppId];
 	if(!appProxy || ![appProxy.bundleType isEqualToString:@"System"]) return;
 
@@ -1505,8 +1509,15 @@ int MAIN_NAME(int argc, char *argv[], char *envp[])
 		else if([cmd isEqualToString:@"install-persistence-helper"])
 		{
 			if(args.count < 2) return -3;
-			NSString* systemAppId = args.lastObject;
-			installPersistenceHelper(systemAppId);
+			NSString* systemAppId = args[1];
+			NSString* persistenceHelperBinary;
+			NSString* rootHelperBinary;
+			if (args.count == 4) {
+				persistenceHelperBinary = args[2];
+				rootHelperBinary = args[3];
+			}
+
+			installPersistenceHelper(systemAppId, persistenceHelperBinary, rootHelperBinary);
 		}
 		else if([cmd isEqualToString:@"uninstall-persistence-helper"])
 		{
